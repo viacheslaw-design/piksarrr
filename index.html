@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c0c0d" />
+  <title>Luxury Glow — Перерисовка образа ИИ</title>
+  <style>
+    :root {
+      --bg: #0c0c0d;
+      --panel: #141416;
+      --accent: #4ade80;
+      --accent-2: #22d3ee;
+      --text: #f5f5f7;
+      --muted: #a1a1aa;
+      --danger: #ff6b6b;
+      --border: #222226;
+      --radius: 14px;
+      --radius-sm: 10px;
+      --shadow: 0 10px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      background:
+        radial-gradient(1200px 800px at 80% -5%, rgba(34,211,238,.15), transparent 45%) no-repeat,
+        radial-gradient(1300px 900px at -10% 0%, rgba(74,222,128,.10), transparent 45%) no-repeat,
+        var(--bg);
+      color: var(--text);
+      font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      -webkit-tap-highlight-color: transparent;
+    }
+    header { padding: 18px 16px 8px; display: flex; align-items: center; gap: 12px; }
+    header .logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid; place-items: center; color: #0b0b0c; font-weight: 800; letter-spacing: .5px;
+      box-shadow: var(--shadow);
+    }
+    header h1 { font-size: 18px; margin: 0; }
+    header p { margin: 0; color: var(--muted); font-size: 12px; }
+
+    main { padding: 8px 16px 32px; max-width: 760px; margin: 0 auto; }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.03), transparent 30%) content-box, var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .u-grid { display: grid; gap: 12px; }
+    .u-row { display: flex; gap: 10px; align-items: center; }
+    .spacer { height: 6px; }
+    .badge { font-size: 11px; padding: 4px 8px; border-radius: 999px; border: 1px solid #263139; color: #9fe8ff; background: #0e1519; }
+
+    .dropzone {
+      position: relative;
+      border: 2px dashed #2a2a30; border-radius: var(--radius);
+      background: #0f0f11; padding: 16px; text-align: center; transition: .2s ease; overflow: hidden;
+    }
+    .dropzone.dragover { border-color: var(--accent-2); background: #101216; }
+    .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; }
+    .dropzone .hint { color: var(--muted); font-size: 13px; }
+    .dropzone .cta { font-weight: 700; }
+
+    .controls { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+    .controls .field { background: #0f0f11; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; }
+    .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    select, input[type=range] {
+      width: 100%; background: #0f0f11; color: var(--text);
+      border: 1px solid #232326; border-radius: 10px; padding: 8px; appearance: none;
+    }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+      border: 1px solid #1f1f22; border-radius: 999px; padding: 12px 14px;
+      font-weight: 700; letter-spacing: .2px; background: linear-gradient(135deg, rgba(34,211,238,.22), rgba(74,222,128,.22));
+      color: #e6fff7; cursor: pointer; transition: .2s ease;
+      box-shadow: 0 8px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .btn.secondary { background: #111214; color: var(--text); font-weight: 600; }
+
+    .preview, .result {
+      aspect-ratio: 3/4; width: 100%; border-radius: var(--radius); overflow: hidden;
+      background: #0d0d10; border: 1px solid var(--border); display: grid; place-items: center;
+    }
+    .preview img, .result img { width: 100%; height: 100%; object-fit: cover; }
+
+    .loader { display: none; place-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+    .loader.show { display: grid; }
+    .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid #2a2a2f; border-top-color: var(--accent-2); animation: spin .9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error { color: var(--danger); background: #2a1212; border: 1px solid #472222; padding: 10px; border-radius: 10px; display: none; white-space: pre-wrap; }
+    .error.show { display: block; }
+
+    /* Before/After slider */
+    .ba {
+      position: relative; width: 100%; aspect-ratio: 3/4;
+      border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
+      background: #0d0d10;
+    }
+    .ba img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .ba .after { clip-path: inset(0 0 0 50%); transition: clip-path .1s ease; }
+    .ba input[type=range] {
+      position: absolute; left: 0; right: 0; bottom: 10px; width: 90%; margin: 0 auto; display: block;
+      accent-color: var(--accent-2);
+    }
+    .ba .divider {
+      position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: rgba(255,255,255,.6);
+      box-shadow: 0 0 0 1px rgba(0,0,0,.5);
+    }
+
+    footer { margin-top: 20px; color: var(--muted); font-size: 12px; text-align: center; }
+    .row { display: grid; gap: 12px; grid-template-columns: 1fr; }
+    @media (min-width: 560px) { .row { grid-template-columns: 1fr 1fr; } }
+
+    .tiny { font-size: 11px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo" aria-hidden="true">LG</div>
+    <div>
+      <h1>Luxury Glow</h1>
+      <p>Сделай фото → ИИ перерисует волосы и одежду. Лицо и фон — без изменений.</p>
+    </div>
+  </header>
+
+  <main class="u-grid">
+    <!-- 1. Входное изображение -->
+    <section class="card u-grid" aria-labelledby="uploadTitle">
+      <div class="u-row" style="justify-content: space-between;">
+        <h2 id="uploadTitle" style="font-size:16px;margin:0;">1) Загрузите или сфотографируйте</h2>
+        <span class="badge">Камера/Галерея</span>
+      </div>
+
+      <div id="dropzone" class="dropzone" tabindex="0" aria-label="Зона для загрузки изображения">
+        <input id="fileInput" type="file" accept="image/*" capture="environment">
+        <div class="u-grid" style="place-items:center;">
+          <div style="font-weight:700;" class="cta">Нажмите, чтобы открыть камеру или галерею</div>
+          <div class="hint">Поддерживаются форматы, которые понимает ваш браузер (JPEG/PNG/WEBP и др.).</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="u-grid">
+          <div class="tiny">Предпросмотр</div>
+          <div class="preview" id="previewBox"><span class="tiny">Фото пока не выбрано</span></div>
+        </div>
+        <div class="u-grid">
+          <div class="tiny">Результат</div>
+          <div class="result" id="resultBox" aria-live="polite"><span class="tiny">Здесь появится перерисованное фото</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Настройки стиля -->
+    <section class="card u-grid" aria-labelledby="styleTitle">
+      <div class="u-row" style="justify-content: space-between;">
+        <h2 id="styleTitle" style="font-size:16px;margin:0;">2) Выберите стиль</h2>
+        <span class="badge">Только волосы и одежда</span>
+      </div>
+
+      <div class="controls">
+        <div class="field">
+          <label for="vibe">Вайб</label>
+          <select id="vibe">
+            <option value="business-elite">Бизнес-элита (классика)</option>
+            <option value="red-carpet">Red Carpet (вечерний образ)</option>
+            <option value="street-luxe">Street‑luxe (кежуал с люкс‑акцентами)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="glam">Уровень глянца: <span id="glamVal">70</span>%</label>
+          <input id="glam" type="range" min="30" max="100" value="70" />
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="field">
+          <label for="model">Модель ИИ</label>
+          <select id="model">
+            <option value="gpt-5">gpt-5 (рекомендуется)</option>
+            <option value="gpt-5-thinking">gpt-5-thinking</option>
+            <option value="gpt-5-instant">gpt-5-instant</option>
+            <option value="gpt-4o">gpt-4o</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="res">Размер ввода</label>
+          <select id="res">
+            <option value="1536">Стандарт (≈1536px по большей стороне)</option>
+            <option value="2048">Крупный (≈2048px)</option>
+            <option value="1024">Лайт (≈1024px)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="u-grid">
+        <button id="processBtn" class="btn" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m12.364-6.364 2.121 2.121M6.515 17.485l-2.121 2.121m12.121 0 2.121-2.121M6.515 6.515 4.394 4.394" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Перерисовать образ
+        </button>
+        <div class="loader" id="loader"><div class="spinner" aria-hidden="true"></div> <span>ИИ работает…</span></div>
+        <div class="error" id="errorBox"></div>
+      </div>
+    </section>
+
+    <!-- 3. Сравнение До/После -->
+    <section class="card u-grid" id="compareSection" style="display:none;" aria-labelledby="compareTitle">
+      <div class="u-row" style="justify-content: space-between;">
+        <h2 id="compareTitle" style="font-size:16px;margin:0;">3) Сравнение: до / после</h2>
+        <span class="badge">Свайп‑слайдер</span>
+      </div>
+      <div class="ba" id="ba">
+        <img id="baBefore" alt="До" />
+        <img id="baAfter" class="after" alt="После" />
+        <div class="divider" id="divider"></div>
+        <input id="baRange" type="range" min="0" max="100" value="50" aria-label="Слайдер сравнения"/>
+      </div>
+      <div class="u-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+        <button id="downloadBtn" class="btn secondary">Скачать результат</button>
+        <button id="resetBtn" class="btn secondary">Сбросить и попробовать снова</button>
+      </div>
+      <div class="tiny">Подсказка: если лицо вдруг изменилось — попробуйте ровный фронтальный ракурс и нейтральный свет.</div>
+    </section>
+
+    <footer>
+      <div class="tiny">⚠️ Для демонстрации ключ API хранится в коде страницы — это небезопасно. Для продакшена используйте сервер‑прокси.</div>
+    </footer>
+  </main>
+
+  <script>
+    // =========================
+    // Конфигурация API
+    // =========================
+    const API_ENDPOINT = "https://chat01.ai/v1/chat/completions";
+    const API_KEY = "sk-BwJn6ZthYMLdiIdU49vR1Un7E75KBdSn1aFi9FES51Rbv3Ta"; // вставьте свой ключ
+    const REQUEST_TIMEOUT_MS = 300000; // 300с: генерация картинок может быть долгой
+
+    // =========================
+    // DOM-элементы
+    // =========================
+    const fileInput   = document.getElementById('fileInput');
+    const dropzone    = document.getElementById('dropzone');
+    const previewBox  = document.getElementById('previewBox');
+    const resultBox   = document.getElementById('resultBox');
+    const modelSel    = document.getElementById('model');
+    const resSel      = document.getElementById('res');
+    const vibeSel     = document.getElementById('vibe');
+    const glamRange   = document.getElementById('glam');
+    const glamVal     = document.getElementById('glamVal');
+    const processBtn  = document.getElementById('processBtn');
+    const loader      = document.getElementById('loader');
+    const errorBox    = document.getElementById('errorBox');
+    const compareSec  = document.getElementById('compareSection');
+    const baBefore    = document.getElementById('baBefore');
+    const baAfter     = document.getElementById('baAfter');
+    const baRange     = document.getElementById('baRange');
+    const divider     = document.getElementById('divider');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const resetBtn    = document.getElementById('resetBtn');
+
+    let originalDataURL = null;
+    let editedDataURL   = null;
+
+    glamRange.addEventListener('input', () => glamVal.textContent = glamRange.value);
+
+    // =========================
+    // Drag & Drop
+    // =========================
+    const stop = e => { e.preventDefault(); e.stopPropagation(); };
+    ['dragenter','dragover'].forEach(evt => dropzone.addEventListener(evt, e => { stop(e); dropzone.classList.add('dragover'); }));
+    ['dragleave','drop'].forEach(evt => dropzone.addEventListener(evt, e => { stop(e); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => {
+      const f = [...(e.dataTransfer?.files || [])].find(f => f.type.startsWith('image/'));
+      if (f) handleFile(f);
+    });
+
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files?.[0];
+      if (f) handleFile(f);
+    });
+
+    // =========================
+    // Работа с изображением
+    // =========================
+    async function handleFile(file) {
+      hideError();
+      if (!file.type.startsWith('image/')) {
+        return showError('Пожалуйста, выберите файл изображения.');
+      }
+      try {
+        const maxSide = parseInt(resSel.value, 10);
+        originalDataURL = await fileToCanvasDataURL(file, maxSide);
+        previewBox.innerHTML = `<img alt="Предпросмотр" src="${originalDataURL}">`;
+        resultBox.innerHTML = `<span class="tiny">Готово к перерисовке</span>`;
+        processBtn.disabled = false;
+        compareSec.style.display = 'none';
+      } catch (e) {
+        showError('Не удалось прочитать изображение. Попробуйте другой файл.');
+      }
+    }
+
+    // Даунскейл + EXIF-ориентация
+    async function fileToCanvasDataURL(file, maxSide = 1536, quality = 0.9) {
+      const OUTPUT_MIME = 'image/jpeg'; // компактнее на вход
+      if ('createImageBitmap' in window) {
+        const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+        const { width: w0, height: h0 } = bitmap;
+        const { w, h } = fitInto(w0, h0, maxSide);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap, 0, 0, w, h);
+        return canvas.toDataURL(OUTPUT_MIME, quality);
+      }
+      const dataURL = await readFileAsDataURL(file);
+      const img = await loadImage(dataURL);
+      const { width: w0, height: h0 } = img;
+      const { w, h } = fitInto(w0, h0, maxSide);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      return canvas.toDataURL(OUTPUT_MIME, quality);
+    }
+
+    function fitInto(w, h, maxSide) {
+      if (Math.max(w, h) <= maxSide) return { w, h };
+      const ratio = w / h;
+      return (w >= h)
+        ? { w: maxSide, h: Math.round(maxSide / ratio) }
+        : { h: maxSide, w: Math.round(maxSide * ratio) };
+    }
+
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('reader'));
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    }
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    // =========================
+    // UI
+    // =========================
+    function showError(msg) { errorBox.textContent = msg; errorBox.classList.add('show'); }
+    function hideError() { errorBox.classList.remove('show'); errorBox.textContent = ''; }
+    function setLoading(isLoading) {
+      loader.classList.toggle('show', isLoading);
+      processBtn.disabled = isLoading || !originalDataURL;
+    }
+
+    // =========================
+    // Промпт (обновлён под стиль Pixar + высокое качество)
+    // =========================
+    function buildStylePrompt() {
+      const glam = glamRange.value;
+      const vibe = vibeSel.value;
+      let vibeText = '';
+      if (vibe === 'business-elite') {
+        vibeText = 'Дресс‑код бизнес‑элита: идеально отутюженный костюм/платье, благородные фактуры (шерсть, шёлк), минималистичные люкс‑аксессуары.';
+      } else if (vibe === 'red-carpet') {
+        vibeText = 'Red Carpet: премиальные ткани, безупречные линии, деликатный блеск, люкс‑аксессуары. Вечерний образ.';
+      } else {
+        vibeText = 'Street‑luxe: чистые силуэты, премиальные кежуал‑материалы, аккуратные детали, дизайнерские кроссовки/ботинки.';
+      }
+      return `
+ЗАДАЧА: Аккуратно перерисовать ТОЛЬКО волосы и одежду на загруженном фото в анимационном стиле Pixar (качественный 3D‑рендер).
+— ЛИЦО НЕЛЬЗЯ менять (не редактировать черты лица, кожу, мимику, эмоции, возраст, цвет глаз, позу головы). Не переводить лицо в мультяшный стиль.
+— ФОН и окружение оставить без изменений. Не переводить фон в мультяшный стиль.
+— СТИЛЬ PIXAR (применять ТОЛЬКО к волосам и одежде): мягкие объёмные формы, чистые градиенты, гармоничная насыщенная палитра, кинематографичное мягкое глобальное освещение, аккуратный rim‑light по контуру, физически корректные материалы (PBR), реалистичные блики без пересветов, гладкие края без «лестницы».
+— Волосы: «только что из салона», читаемая прядность крупными кластерами, мягкий объём, лёгкий естественный глянец, без «пластика» и артефактов — в стилистике Pixar.
+— Одежда: визуально дорогая, современная, премиальные фактуры и посадка, чистые линии, без логомании; материал выглядит как качественный 3D‑рендер (бархат/сатин/шерсть — по ситуации) — в стилистике Pixar.
+— Уровень глянца/люкса: ~${glam}%.
+— ${vibeText}
+— КАЧЕСТВО: очень высокое; чистые края (anti‑aliasing), минимум шумов и артефактов, высокая детальность; по возможности выдавай изображение большой чёткости.
+
+ФОРМАТ ОТВЕТА (строго): верни одну картинку результата ЛЮБЫМ из вариантов:
+1) data URL (data:image/png;base64,...) ИЛИ
+2) Markdown‑картинка ![](https://...) ИЛИ
+3) <img src="https://..."> ИЛИ
+4) прямой HTTPS‑URL на изображение.
+Без текста и пояснений. Если невозможно — верни исходное изображение как data URL.`;
+    }
+
+    // =========================
+    // Payload для /v1/chat/completions
+    // =========================
+    function buildChatPayload({ model, userImageDataURL, prompt }) {
+      return {
+        model,
+        stream: true,            // разрешаем стрим
+        temperature: 0.2,
+        messages: [
+          {
+            role: "system",
+            content:
+"Ты — строгий ассистент по визуальной перерисовке образа. Строго не изменяй лицо и фон. Отвечай только картинкой (см. формат). Если задача невыполнима — верни исходное изображение."
+          },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: userImageDataURL, detail: "high" } }
+            ]
+          }
+        ]
+      };
+    }
+
+    // =========================
+    // Отправка запроса
+    // =========================
+    processBtn.addEventListener('click', async () => {
+      if (!originalDataURL) return;
+      hideError();
+      setLoading(true);
+      resultBox.innerHTML = '';
+
+      const payload = buildChatPayload({
+        model: modelSel.value,
+        userImageDataURL: originalDataURL,
+        prompt: buildStylePrompt()
+      });
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+        const res = await fetch(API_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${API_KEY}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json, text/event-stream, application/x-ndjson'
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        }).catch(err => { throw err; })
+          .finally(() => clearTimeout(timeoutId));
+
+        if (!res.ok) {
+          const text = await res.text().catch(()=> '');
+          throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
+        }
+
+        const contentType = (res.headers.get('content-type') || '').toLowerCase();
+
+        if (contentType.includes('text/event-stream')) {
+          const img = await handleLineStreamAndExtractImage(res, { ndjson: false });
+          if (!img) throw new Error('Провайдер прислал поток (SSE), но без картинки.');
+          editedDataURL = img;
+          showResult();
+          setLoading(false);
+          return;
+        }
+
+        if (contentType.includes('application/x-ndjson')) {
+          const img = await handleLineStreamAndExtractImage(res, { ndjson: true });
+          if (!img) throw new Error('Провайдер прислал поток (NDJSON), но без картинки.');
+          editedDataURL = img;
+          showResult();
+          setLoading(false);
+          return;
+        }
+
+        // JSON / текст без стрима
+        let data;
+        if (contentType.includes('application/json')) {
+          data = await res.json();
+        } else {
+          const txt = await res.text();
+          const directFromText = extractImageFromText(txt);
+          if (directFromText) {
+            editedDataURL = directFromText;
+            showResult();
+            setLoading(false);
+            return;
+          }
+          try { data = JSON.parse(txt); } catch {
+            throw new Error('Неподдерживаемый тип ответа: ' + contentType);
+          }
+        }
+
+        const out = extractImageFromResponse(data);
+        if (!out) throw new Error('Не удалось распознать изображение в ответе API.');
+        editedDataURL = out;
+        showResult();
+
+      } catch (err) {
+        console.error(err);
+        const aborted = (err?.name === 'AbortError');
+        showError((aborted ? 'Таймаут ожидания ответа.' : 'Ошибка запроса.') +
+                  '\nДетали: ' + (err?.message || String(err)));
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // =========================
+    // Парсинг стримов (SSE и NDJSON) и извлечение картинки
+    // =========================
+    async function handleLineStreamAndExtractImage(res, { ndjson = false } = {}) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      let acc = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let lines = buffer.split(/\r?\n/);
+        buffer = lines.pop() || '';
+
+        for (const rawLine of lines) {
+          const line = rawLine.trim();
+          if (!line) continue;
+
+          let payload = line;
+          if (!ndjson) {
+            // SSE: строки вида "data: {...}"
+            if (!line.startsWith('data:')) continue;
+            payload = line.slice(5).trim();
+            if (!payload || payload === '[DONE]') continue;
+          }
+
+          try {
+            const obj = JSON.parse(payload);
+            const piece = pickTextDelta(obj);
+            if (piece) acc += piece;
+          } catch {
+            acc += payload; // если пришёл «голый» текст
+          }
+        }
+      }
+
+      if (buffer.trim()) {
+        try {
+          const obj = JSON.parse(buffer.trim());
+          const piece = pickTextDelta(obj);
+          if (piece) acc += piece;
+        } catch {
+          acc += buffer.trim();
+        }
+      }
+
+      return extractImageFromText(acc);
+    }
+
+    // Выделяем текстовую «дельту» из разных форматов
+    function pickTextDelta(obj) {
+      const choice = obj?.choices?.[0];
+
+      // 1) Обычные дельты
+      const d = choice?.delta || choice;
+      if (typeof d?.content === 'string') return d.content;
+      if (Array.isArray(d?.content)) {
+        return d.content.map(p => (typeof p === 'string' ? p : (p?.text || ''))).join('');
+      }
+      if (typeof d?.text === 'string') return d.text;
+
+      // 2) Некоторые реализации кладут сразу message.content
+      const mc = obj?.message?.content;
+      if (typeof mc === 'string') return mc;
+      if (Array.isArray(mc)) return mc.map(p => (p?.text || '')).join('');
+
+      // 3) Иногда кладут в obj.text
+      if (typeof obj?.text === 'string') return obj.text;
+
+      return '';
+    }
+
+    // =========================
+    // Извлечение изображения из текста/JSON
+    // =========================
+    function extractImageFromText(text) {
+      return (
+        matchFirstDataURL(text) ||
+        matchMarkdownImage(text) ||
+        matchHtmlImg(text) ||
+        matchAnyUrl(text)
+      );
+    }
+
+    function extractImageFromResponse(data) {
+      try {
+        const content = data?.choices?.[0]?.message?.content;
+
+        // 1) content — строка
+        if (typeof content === 'string') {
+          const m = extractImageFromText(content);
+          if (m) return m;
+        }
+
+        // 2) content — массив частей
+        if (Array.isArray(content)) {
+          const flat = content.map(p =>
+            (typeof p === 'string')
+              ? p
+              : (p?.image_url?.url || p?.image_url || p?.text || '')
+          ).join('\n');
+          const m = extractImageFromText(flat);
+          if (m) return m;
+        }
+
+        // 3) «наследуемый» формат image API (маловероятен здесь)
+        const b64 = data?.data?.[0]?.b64_json;
+        if (b64) return 'data:image/png;base64,' + b64;
+
+        // 4) иногда кладут напрямую
+        const direct = data?.choices?.[0]?.message?.image_url;
+        if (typeof direct === 'string') return direct;
+
+        // 5) попытка вытащить из всего JSON как текста
+        const asText = JSON.stringify(data);
+        return extractImageFromText(asText) || null;
+
+      } catch {
+        return null;
+      }
+    }
+
+    function matchFirstDataURL(text) {
+      const re = /(data:image\/(?:png|jpeg|jpg|webp);base64,[a-z0-9+\/=\s]+)(?=$|\s|["'`,])/i;
+      const m = text?.match?.(re);
+      return m ? m[1].replace(/\s+/g, '') : null;
+    }
+    function matchMarkdownImage(text) {
+      const m = text?.match?.(/!$$[^$$]*]$([^)]+)$/);
+      return m ? m[1] : null;
+    }
+    function matchHtmlImg(text) {
+      const m = text?.match?.(/<img[^>]+src=["']([^"']+)["']/i);
+      return m ? m[1] : null;
+    }
+    function matchAnyUrl(text) {
+      // Берём первый HTTPS‑URL (даже без .png в конце — CDN нередко без расширения)
+      const m = text?.match?.(/https?:\/\/[^\s"'<>)+]+/i);
+      return m ? m[0] : null;
+    }
+
+    // =========================
+    // Слайдер до/после + действия
+    // =========================
+    function showResult() {
+      resultBox.innerHTML = `<img alt="Результат" src="${editedDataURL}">`;
+      baBefore.src = originalDataURL;
+      baAfter.src  = editedDataURL;
+      compareSec.style.display = 'block';
+      updateBeforeAfter(baRange.value);
+      compareSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    baRange.addEventListener('input', () => updateBeforeAfter(baRange.value));
+    function updateBeforeAfter(val) {
+      const rightClip = 100 - Number(val);
+      baAfter.style.clipPath = `inset(0 ${rightClip}% 0 0)`;
+      divider.style.left = `${val}%`;
+    }
+
+    downloadBtn.addEventListener('click', () => {
+      if (!editedDataURL) return;
+      if (editedDataURL.startsWith('data:image')) {
+        const a = document.createElement('a');
+        a.href = editedDataURL;
+        a.download = 'luxury-glow.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else {
+        window.open(editedDataURL, '_blank', 'noopener,noreferrer');
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      originalDataURL = null; editedDataURL = null;
+      fileInput.value = '';
+      previewBox.innerHTML = `<span class="tiny">Фото пока не выбрано</span>`;
+      resultBox.innerHTML  = `<span class="tiny">Здесь появится перерисованное фото</span>`;
+      compareSec.style.display = 'none';
+      processBtn.disabled = true;
+      hideError();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  </script>
+</body>
+</html>
